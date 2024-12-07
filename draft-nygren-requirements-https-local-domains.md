@@ -124,6 +124,13 @@ informative:
        org: W3C
      target: https://github.com/httpslocal
 
+  w3c-pna:
+     title: Private Network Access
+     date: September 2024
+     author:
+       org: W3C
+     target: https://wicg.github.io/private-network-access/
+
   sec-context:
      title: "Secure Contexts"
      date: 2023
@@ -199,17 +206,16 @@ authentication system for local hosts.
 
 {::boilerplate bcp14-tagged}
 
-# Requirements
+# Technical Requirements
 
 ## Naming
 
-PKIX certificates are a centralized naming scheme derived from
-DNS. One of its significant characteristics is unique names.  These
-names have (the possibility of) being human-readable names.  But the
-most significant property is uniqueness -- each name has its own
+PKIX certificates are a centralized naming scheme derived from DNS.
+These names have (the possibility of) being human-readable names.  But
+the most significant property is uniqueness -- each name has its own
 identity and that identity can be proven.
 
-A system that does not rely on PKIX or DNS lacks this inherient
+A system that does not rely on centralized naming lacks this inherient
 uniqueness property.
 
 Without a centralized naming scheme, name collisions are possible and
@@ -221,38 +227,112 @@ two networks both have a printer named "printer", they are indistinguishable
 and if one responds when the other was expected, the mismatch will
 appear identical to an attack.  This would be unacceptable.
 
-R-UNIQUE-NAME: The system MUST have a way to uniquely name servers.
+> R-UNIQUE-NAME: The system MUST have a way to uniquely identify
+  servers.
 
+
+## Cryptographic Binding
+
+A server's name has to be mapped to its cryptographic identity.
+
+> R-BINDING: The Web Origin MUST be cryptographically bound to one or
+  more key pairs, where the private keying material is on the service
+  endpoint and where an attacker without the private key(s) is unable
+  to access any state associated with the Web Origin.
+
+A client has to be able to validate the name maps to the cryptographic
+identity.
+
+> R-VALIDATE: Clients MUST be able to cryptographically validate that
+  the authenticating server matches the identity in the URI / Web
+  Origin.
+
+Web browsers and modern users both expect a URI.
+
+> R-URI: It MUST be possible to construct a URI that encapsulates a
+  Web Origin and its cryptographically-bound identity information.
+
+
+## Abstract Naming
+
+Using IP addresses in names is problematic if the server's IP address
+changes due to ISP renumbering or internal network DHCP server
+reconfiguration.
+
+> R-ABSTRACT: The solution SHOULD abstract names from IP addresses.
+
+Any given name should be able to have a mixture of IPv4, IPv6
+Link-Local (on an Interface), IPv6 ULA, and IPv6 Globally-Routable
+addresses. Operating a local DNS is beyond the scope of many
+administrators, so being able to advertise the server using
+{{?DNS-SD=RFC6763}} is necessary.
+
+> R-DNS-SD: The name MUST be advertisable using {{?DNS-SD=RFC6763}}
+
+
+
+## Avoid Central Authority
+
+A solution needs to be self-contained and not use the central
+authority of PKIX.
+
+> R-AVOID-CENTRAL: A solution SHOULD NOT (MUST NOT?) rely on central
+  trust hierarchy.
+
+Vendors go out of business or lose interest in continuing to service
+old products. The products may still be operational.
+
+> R-AVOID-VENDOR: A solution SHOULD NOT (MUST NOT?) have continued
+  reliance on a service operated by a vendor, including if the device
+  is reset to factory defaults (e.g., reset for troubleshotting or
+  because sold).
+
+
+## Multiple Application Protocols
+
+> R-MULT-APP: A solution MUST support various application-level
+  protocols such as HTTPS, IPPS, DoH, DoT, SMB over QUIC, and so on.
+
+
+## Cryptographic Agility
+
+> R-AGILITY: A solution SHOULD support crypto agility (such as
+  supporting more than one active key type).
+
+## TLS Server Name Indication
+
+> R-TLS-SNI: A solution SHOULD support TLS SNI so a server knows which
+key pair/cert is expected.
+
+## Localhost
+
+> R-LOCALHOST: A solution SHOULD support localhost uses as well (e.g.,
+for sending a user to connect to a local service)
+
+
+## W3C Private Network Access
+
+> R-PNA: A solution SHOULD integrate well with an evolution of
+{{w3c-pna}} and both allow for an improved model there but should also
+provide more robust solutions to vulnerabilities that it tries to
+address
+
+## Constrain to Local Resources
+
+> R-LOCAL: A solution SHOULD be constrained to .local and .internal.
+
+> Discuss: MAY constrain to the DHCP domain-search value??  Should we
+also allow any arbitrary name if the IP address is local (RFC1918
+address), too?
 
 
 ## Technical Requirements
-
-1. The Web Origin MUST be cryptographically bound to one or more key
-pairs, where the private keying material is on the service endpoint
-and where an attacker without the private key(s) is unable to access
-any state associated with the Web Origin.
-
-1. SHOULD abstract names from IP addresses.  Any given name should be
-able to have a mixture of IPv4, IPv6 Link-Local (on an Interface), IPv6
-ULA, and IPv6 Globally-Routable addresses.  (For example, must be able
-to interact well with DNSSD).
-
-1. Clients MUST be able to cryptographically validate that the
-authenticating server certificate of a service endpoint matches the
-identity in the URI / Web Origin URIs MUST be possible to construct
-that encapsulate a Web Origin and cryptographically bound identity
-information.
-
-
-1. URIs MUST be possible to construct that encapsulate a Web Origin
-and cryptographically bound identity information.
 
 1. It SHOULD be possible to have a way to represent a URI that
 includes a single specific IP address and the cryptographic identity
 of the service endpoint.
 
-1. SHOULD/MUST NOT have a reliance on central trust hierarchy or
-continued reliance on a service operated by a vendor.
+> Discuss: the above requirement needs to be re-written.
 
 
 1. SHOULD support key rotation (even if via 301 redirect) — Q: is it
@@ -261,83 +341,78 @@ doing TLS (HTTPS).  Is this suggestion to start HTTP and upgrade to
 HTTPS?  Could be useful for HTTPS but redirect unavailable for IPP,
 SMB, DoH.
 
-1. MUST support HTTPS, IPPS, DoH, DoT, SMB over QUIC
+> Discuss: the above requirement needs to be re-written.
 
-1. SHOULD support crypto agility (with more than one active key type)
-
-1. SHOULD support TLS SNI so a server knows which key pair/cert is
-expected
-
-1. SHOULD support localhost uses as well (e.g., for sending a user to
-connect to a local service)
 
 1. SHOULD support building trust relationships within devices in the
 local environment
 
-1. SHOULD integrate well with an evolution of
-https://wicg.github.io/private-network-access/ and both allow for an
-improved model there but should also provide more robust solutions to
-vulnerabilities that it tries to address
+> Discuss: the above requirement needs to be re-written.
 
-1. SHOULD constrain to .local and .internal.  MAY constrain to the
-DHCP domain-search value??  Should we also allow any arbitrary name if
-the IP address is local (RFC1918 address), too?
-
-1. MUST NOT require ongoing vendor support or function, as vendors go
-out of business or lose interest in old equipment
-
-1. Device reset-to-factory settings MUST NOT require initial vendor
-support, as vendors go out of business or lose interest in old
-equipment.
 
 1. Could this help with HTTPS access to Wi-Fi login portals
 ({{?RFC8952}}, {{?RFC8910}})?
 
-## Human Factors Requirements
+> Discuss: the above requirement needs to be re-written.
 
-1. SHOULD have a way to do discovery of endpoints and their identities
-(for example, via DNSSD?)
+# Human Factors Requirements
 
-1. SHOULD have human factors and adversarial testing on proposed
-solutions to make sure that this solution provides a reasonable
-experience to average and novice end-users and does not introduce new
-security exploitation vectors
 
-1. SHOULD have a URI that users can Bookmark to create an association
-to a friendly name.  Further detail: Can URL bar of the browser honor
-mDNS/DNSSD advertised names, or give a pull-down of them similar to
-how the “add printer” dialog does for printers?  This would help ease
-the use of long FQDN so it’s almost as easy as router.local.
-Especially if it could show a nickname that is configured by the
-printer.
+## Discoverable
 
-1. (SHOULD?) have a way to represent these URIs to humans in a
-consistent, readhable, and non-confusing fashion.  (In a browser,
+> R-DISCOVER: A solution SHOULD have a way to do discovery of
+endpoints and their identities (for example, via {{?DNS-SD=RFC6763}}).
+
+
+## Easy to Use
+
+> R-EASY: A solution SHOULD have human factors and adversarial testing
+on proposed solutions to make sure that this solution provides a
+reasonable experience to average and novice end-users and does not
+introduce new security exploitation vectors
+
+## Bookmarkable
+
+> R-BOOKMARK: A solution SHOULD have a URI that users can Bookmark to create an association
+to a friendly name.
+
+> Discussion: Can URL bar of the browser honor mDNS/DNSSD advertised
+names, or give a pull-down of them similar to how the “add printer”
+dialog does for printers?  This would help ease the use of long FQDN
+so it’s almost as easy as router.local.  Especially if it could show a
+nickname that is configured by the printer.
+
+## Human-friendly Name
+
+> R-CONSISTENT: A solution SHOULD represent these URIs to humans in a
+consistent, readable, and non-confusing fashion.  (In a browser,
 users shouldn’t see the key fingerprint by default but rather a
 representation of its presence)
 
 
 # Big Open Questions
 
+## Key Rotation
+
 1. Is it acceptable for the Web Origin to change as part of key rotations?
 A: no, this doesn’t happen today and changing the web origin would violate the principle of least surprise.
 
+## Trust on First Use (TOFU)
 
-1. Is TOFU acceptable?
+Is TOFU acceptable?
 
-   * TOFU is arguably what we have today with self-signed certificates
-     which can be trusted, and are O(client*server) where each client
-     has to trust each server’s self-signed certificate manually.  If
-     we can reduce the TOFU so that *each client* does not need to
-     TOFU *each server*, we can improve things, ideally to O(client),
-     where each client needs to TOFU once to the network, and also
-     have a way for more paranoid clients to validate a fingerprint.
+> Note: TOFU is arguably what we have today with self-signed certificates
+     which can be trusted (after the user accepts the warning message and
+     adds the certificate to their client's trust store).
 
 
-1. What is the User Experience for any trust relationship / web-of-trust?
+## User Experience
 
+For a solution, what is the User Experience for any trust relationship / web-of-trust?
 
-1. What is the nature of the trust relationship?
+## Trust Relationship
+
+For a solution, what is the nature of the trust relationship?
 
    * Peer trust web?
 
@@ -345,7 +420,9 @@ A: no, this doesn’t happen today and changing the web origin would violate the
 
    * Client establishes its own trust to the server
 
-1. How does this tie into systems like Matter/Thread that have their own trust establishment frameworks?
+## Interaction with Matter/Thread
+
+How does a solution tie into systems like Matter/Thread that have their own trust establishment frameworks?
 
 
 
@@ -358,11 +435,19 @@ TOFU at a minimum, but when the identity of a service is none it
 should be possible to send it as a URI in such as a way to present a
 secure association rooted in the connection that sent it:
 
-* Secure communications via HTTPS to admin interfaces on CPEs
+* Secure communications via HTTPS to admin interfaces on CPEs for
+both initial and ongoing configuration tasks of various servers
+(router, printer, NAS, etc.).
+
 * Secure communications to DoH/DoT servers on CPEs
-* Secure communications to printers (HTTPS admin interfaces and IPPS {{?RFC7472}} printing)
-* Secure communications to other local services (SMB over QUIC) and IoT devices
-* Secure communications to localhost processes from a browser (e.g., admin tools)
+
+* Secure communications to printers (IPPS {{?RFC7472}} printing)
+
+* Secure communications to other local services (SMB over QUIC to
+  another workstation or a NAS) and IoT devices
+
+* Secure communications to localhost processes from a browser (e.g.,
+  admin tools)
 
 
 # Related {#related}
